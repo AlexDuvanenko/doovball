@@ -1,21 +1,10 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { Client } = require("espn-fantasy-football-api/node");
-const {
-    espn_leagueId,
-    espn_seasonId,
-    espn_s2,
-    espn_SWID,
-} = require("../../config.json");
-
-const myClient = new Client({ leagueId: espn_leagueId });
-myClient.setCookies({
-    espnS2: espn_s2,
-    SWID: espn_SWID,
-});
+const { espnClient } = require("../../utilities/espnClient");
+const { espn_seasonId } = require("../../config.json");
 
 const fetchLeagueInfo = async () => {
     try {
-        const response = await myClient.getLeagueInfo({
+        const response = await espnClient.getLeagueInfo({
             seasonId: espn_seasonId,
         });
         if (!response) {
