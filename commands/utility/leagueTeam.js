@@ -1,7 +1,5 @@
 const { SlashCommandBuilder } = require("discord.js");
-const { fetchLeagueTeams } = require("../../api/teamsInfoAPI");
-
-const WEEK_ID = 18; // 18 refers to end of season
+const { ENDING_WEEK_ID, fetchLeagueTeams } = require("../../api/teamsInfoAPI");
 
 const INIITIAL_TEAM_EMBED = {
     color: 0x0099ff,
@@ -9,9 +7,11 @@ const INIITIAL_TEAM_EMBED = {
     fields: [],
 };
 
-const getLeagueTeamsData = async () => {
+// TODO: Lots of code cleanup
+
+const getLeagueTeamsData = async (selectedWeekId) => {
     try {
-        const teamsData = await fetchLeagueTeams(WEEK_ID);
+        const teamsData = await fetchLeagueTeams(selectedWeekId);
         if (!teamsData) {
             console.error("No data received!");
             return;
@@ -23,8 +23,8 @@ const getLeagueTeamsData = async () => {
     }
 };
 
-const formatTeamsDataForAutocomplete = async () => {
-    const data = await getLeagueTeamsData();
+const formatTeamsDataForAutocomplete = async (selectedWeekId) => {
+    const data = await getLeagueTeamsData(selectedWeekId);
     const teams = [];
 
     data.forEach((team) => {
@@ -80,7 +80,7 @@ module.exports = {
                 .setAutocomplete(true)
         ),
     async autocomplete(interaction) {
-        const teams = await formatTeamsDataForAutocomplete();
+        const teams = await formatTeamsDataForAutocomplete(ENDING_WEEK_ID);
         const focusedValue = interaction.options.getFocused();
         const filtered = teams.filter((choice) =>
             choice.name.startsWith(focusedValue)
