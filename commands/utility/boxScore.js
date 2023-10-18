@@ -5,11 +5,6 @@ const {
 } = require("../../api/boxScoreAPI");
 const { formatTeamsDataForAutocomplete } = require("../../api/teamsInfoAPI");
 
-const INITIAL_BOX_SCORES_EMBED = {
-    title: "Box Scores",
-    fields: [],
-};
-
 // TODO: Lots of code cleanup
 
 const getBoxScoresData = async (weekId) => {
@@ -34,20 +29,18 @@ const formatAllBoxScores = async (weekId) => {
             return;
         }
 
-        const scoresEmbed = INITIAL_BOX_SCORES_EMBED;
-        scoresEmbed.title = `Box Scores - Week ${weekId}`;
+        const scoresEmbed = new EmbedBuilder();
+        scoresEmbed.setTitle(`Box Scores - Week ${weekId}`);
+        scoresEmbed.data.fields = [];
 
         data.forEach((d, index) => {
-            scoresEmbed.fields.push({
+            scoresEmbed.addFields({
                 name: `${index + 1} - ${d.homeTeamId} vs ${d.awayTeamId}`,
                 value: `${d.homeScore} - ${d.awayScore}`,
             });
         });
 
-        return new EmbedBuilder()
-            .setTitle(scoresEmbed.title)
-            .setDescription(scoresEmbed.description)
-            .addFields(scoresEmbed.fields);
+        return scoresEmbed;
     } catch (error) {
         console.error("Error: ", error);
     }
@@ -60,20 +53,24 @@ const formatSpecificTeamBoxScore = async (week, teamId) => {
             console.error("No data could be received!");
             return;
         }
-        const teamEmbed = INITIAL_BOX_SCORES_EMBED;
+        const teamEmbed = new EmbedBuilder();
 
         const selectedBoxScore = boxScoreTeams.find(
             (team) => team.homeTeamId == teamId || team.awayTeamId == teamId
         );
 
         if (!selectedBoxScore) {
-            teamEmbed.setDescription =
-                "No data for selected team! Likely a typo!";
+            teamEmbed.setDescription(
+                "No data for selected team! Likely a typo!"
+            );
+            teamEmbed.data.fields = [];
             return teamEmbed;
         }
 
-        teamEmbed.title = `${selectedBoxScore.homeName} vs ${selectedBoxScore.awayName}`;
-        teamEmbed.description = `Box Score - Week ${week}`;
+        teamEmbed.setTitle(
+            `${selectedBoxScore.homeName} vs ${selectedBoxScore.awayName}`
+        );
+        teamEmbed.setDescription(`Box Score - Week ${week}`);
 
         const pointFields = [
             {
@@ -88,12 +85,9 @@ const formatSpecificTeamBoxScore = async (week, teamId) => {
             },
         ];
 
-        pointFields.forEach((field) => teamEmbed.fields.push(field));
+        pointFields.forEach((field) => teamEmbed.addFields(field));
 
-        return new EmbedBuilder()
-            .setTitle(teamEmbed.title)
-            .setDescription(teamEmbed.description)
-            .addFields(teamEmbed.fields);
+        return teamEmbed;
     } catch (error) {
         console.error(`Error: ${error.message}`);
     }
@@ -132,7 +126,6 @@ module.exports = {
         );
         await interaction.respond(filteredTeam);
     },
-    // TODO: BUG - This is not updating the embed fields as expected
     async execute(interaction) {
         const week = interaction.options.getInteger("week");
         const team = (await interaction.options.getString("team")) || null;
