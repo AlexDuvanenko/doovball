@@ -1,42 +1,25 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const {
-    fetchBoxScores,
-    fetchBoxScoresWithTeamNames,
-} = require("../../api/boxScoreAPI");
+const { fetchBoxScoresWithTeamNames } = require("../../api/boxScoreAPI");
 const { formatTeamsDataForAutocomplete } = require("../../api/teamsInfoAPI");
 
 // TODO: Lots of code cleanup
 
-const getBoxScoresData = async (weekId) => {
+const formatAllBoxScores = async (week) => {
     try {
-        const scores = await fetchBoxScores(weekId);
-        if (!scores) {
-            console.error("No data received!");
-            return;
-        }
-
-        return scores;
-    } catch (error) {
-        console.error("Error: ", error);
-    }
-};
-
-const formatAllBoxScores = async (weekId) => {
-    try {
-        const data = await getBoxScoresData(weekId);
+        const data = await fetchBoxScoresWithTeamNames(week);
         if (!data) {
             console.error("No data!");
             return;
         }
 
         const scoresEmbed = new EmbedBuilder();
-        scoresEmbed.setTitle(`Box Scores - Week ${weekId}`);
+        scoresEmbed.setTitle(`Box Scores - Week ${week}`);
         scoresEmbed.data.fields = [];
 
-        data.forEach((d, index) => {
+        data.forEach((d) => {
             scoresEmbed.addFields({
-                name: `${index + 1} - ${d.homeTeamId} vs ${d.awayTeamId}`,
-                value: `${d.homeScore} - ${d.awayScore}`,
+                name: `${d.homeName}   vs   ${d.awayName}`,
+                value: `${d.homeScore}   -   ${d.awayScore}`,
             });
         });
 
