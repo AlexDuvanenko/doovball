@@ -11,7 +11,6 @@
         "arrow-spacing": ["warn", { "before": true, "after": true }],
         "comma-spacing": "error",
         "comma-style": "error",
-        "curly": ["error", "multi-line", "consistent"],
         "dot-location": ["error", "property"],
         "handle-callback-err": "off",
         "keyword-spacing": "error",
