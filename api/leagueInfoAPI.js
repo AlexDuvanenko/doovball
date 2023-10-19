@@ -9,10 +9,13 @@ const axios = require("axios");
 
 const ESPN_FFL_BASE_URL = `https://fantasy.espn.com/apis/v3/games/ffl/seasons/${espn_seasonId}/segments/0/leagues/${espn_leagueId}`;
 // need to pass old season id
-const ESPN_FFL_HISTORIC_URL = `https://fantasy.espn.com/apis/v3/games/ffl/seasons/`;
+const ESPN_FFL_URL = `https://fantasy.espn.com/apis/v3/games/ffl/seasons/`;
+
+const TEAM_URL = "mTeam";
+const ROSTER_URL = "mRoster";
 
 const fetchLeagueEndpoint = async () => {
-    const apiURL = `${ESPN_FFL_BASE_URL}`;
+    const apiURL = `${ESPN_FFL_BASE_URL}?rosterForTeamId=5&view=${TEAM_URL}&view=${ROSTER_URL}`;
     return axios
         .get(apiURL, {
             headers: {
@@ -27,6 +30,8 @@ const fetchLeagueEndpoint = async () => {
             console.error("Error fetching league endpoint", error);
         });
 };
+
+/* ----- OLD ----- */
 
 const fetchLeagueInfo = async () => {
     try {
@@ -46,5 +51,5 @@ module.exports = {
     fetchLeagueEndpoint,
     fetchLeagueInfo,
     ESPN_FFL_BASE_URL,
-    ESPN_FFL_HISTORIC_URL,
+    ESPN_FFL_URL,
 };

@@ -1,83 +1,120 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { fetchLeagueTeamsInfo } = require("../../api/teamsInfoAPI");
-
-// TODO: Lots of code cleanup
+const {
+    fetchLeagueTeams,
+    fetchSpecifiedTeamData,
+} = require("../../api/testAPI");
 
 const getLeagueTeamsInfo = async () => {
     try {
-        const { teams } = await fetchLeagueTeamsInfo();
+        const { teams } = await fetchLeagueTeams();
         if (!teams) {
             console.error("No data from fetchLeagueTeamsInfo");
             return null;
         }
-        console.info("Got team data successfully!");
+
         return teams;
     } catch (error) {
         console.error("Error: ", error.message);
     }
 };
 
-const formatTeamInfoAutocomplete = async () => {
+const formatTeamsAutocomplete = async () => {
     try {
-        const teamData = await getLeagueTeamsInfo();
-        const teams = [];
+        const teams = await getLeagueTeamsInfo();
 
-        teamData.forEach((team) => {
-            teams.push({ name: `${team.name}`, value: `${team.id}` });
+        const listOfTeams = [];
+        teams.forEach((team) => {
+            listOfTeams.push({ name: `${team.name}`, value: `${team.id}` });
         });
 
-        return teams;
+        return listOfTeams;
     } catch (error) {
-        console.error("Error awaiting getLeagueTeamsInfo: ", error.message);
+        console.error(`Error: ${error.message}`);
     }
 };
 
-const createTeamEmbed = async (teamId) => {
+const getSpecifiedTeamData = async (teamId) => {
+    if (!teamId) {
+        console.error("No team id provided");
+        return;
+    }
+
     try {
-        const teams = await getLeagueTeamsInfo();
-        const teamEmbed = new EmbedBuilder();
+        const { teams } = await fetchSpecifiedTeamData(teamId);
 
-        const filteredTeam = teams.find((team) => team.id == teamId);
-
-        if (!filteredTeam) {
-            teamEmbed.setDescription("No data for selected team!");
-            teamEmbed.data.fields = [];
-            return teamEmbed;
+        if (!teams) {
+            console.error("didn't get any team data!");
+            return;
         }
 
-        const record = filteredTeam.record.overall;
-        console.log(record);
+        const specificTeamData = teams.find((team) => team.id == teamId);
 
-        // theres a chance this could be a tie; will refactor later
-        const streakType = record.streakType === "WIN" ? "W" : "L";
-
-        const descriptionFields = `Position: **${filteredTeam.playoffSeed}**
-            Record: **(${record.wins}-${record.losses}-${record.ties}) ${
-            record.streakLength
-        }${streakType}** \n
-            Points For: **${record.pointsFor.toFixed(2)}**
-            Points Against: **${record.pointsAgainst.toFixed(2)}** \n
-            Current Projected Rank: **${filteredTeam.currentProjectedRank}**
-            Draft Projected Rank: **${filteredTeam.draftDayProjectedRank}** \n
-            Waiver Rank: **${filteredTeam.waiverRank}**
-        `;
-        teamEmbed.setTitle(filteredTeam.name);
-        teamEmbed.setColor(0x0099ff);
-        // TODO: if svg, convert image to something discord can embed
-        teamEmbed.setThumbnail(filteredTeam.logo);
-        teamEmbed.setDescription(descriptionFields);
-
-        return teamEmbed;
+        return createTeamEmbed(specificTeamData);
     } catch (error) {
-        console.error("failed to await getLeagueTeamsInfo ", error.message);
+        console.error(`Error: ${error.message}`);
     }
+};
+
+const createTeamEmbed = (teamData) => {
+    const embed = new EmbedBuilder();
+    embed.data.fields = [];
+
+    if (!teamData) {
+        embed.setTitle("No Team");
+        embed.setDescription("No team was provided; try again!");
+        return embed;
+    }
+
+    const teamRecord = teamData.record.overall;
+    // theres a chance this could be a tie; will refactor later
+    const streakType = teamRecord.streakType === "WIN" ? "W" : "L";
+    const embedDescriptionField = `Position: **${teamData.playoffSeed}**
+        Record: **(${teamRecord.wins}-${teamRecord.losses}-${
+        teamRecord.ties
+    }) ${teamRecord.streakLength}${streakType}** \n
+        Points For: **${teamRecord.pointsFor.toFixed(2)}**
+        Points Against: **${teamRecord.pointsAgainst.toFixed(2)}** \n
+        Current Projected Rank: **${teamData.currentProjectedRank}**
+        Draft Projected Rank: **${teamData.draftDayProjectedRank}** \n
+        Waiver Rank: **${teamData.waiverRank}** \n \n
+        **__Roster__** 
+    `;
+
+    embed.setTitle(teamData.name);
+    embed.setColor(0x0099ff);
+    embed.setThumbnail(teamData.logo);
+    embed.setDescription(embedDescriptionField);
+
+    const players = teamData.roster.entries.map((item) => {
+        const {
+            playerPoolEntry: {
+                player: { fullName, injured, injuryStatus },
+            },
+        } = item;
+
+        return {
+            fullName,
+            injured,
+            injuryStatus,
+        };
+    });
+
+    players.forEach((player) =>
+        embed.addFields({
+            name: `${player.fullName}`,
+            value: `${player.injuryStatus || "ACTIVE"}`,
+            inline: true,
+        })
+    );
+
+    return embed;
 };
 
 module.exports = {
     cooldown: 5,
     data: new SlashCommandBuilder()
         .setName("league-team")
-        .setDescription("Information about a specific team in the league")
+        .setDescription("testing slash")
         .addStringOption((option) =>
             option
                 .setName("team")
@@ -86,17 +123,17 @@ module.exports = {
                 .setAutocomplete(true)
         ),
     async autocomplete(interaction) {
-        const teams = await formatTeamInfoAutocomplete();
+        const teams = await formatTeamsAutocomplete();
         const focusedValue = interaction.options.getFocused();
-        const filtered = teams.filter((choice) =>
+        const filteredTeam = teams.filter((choice) =>
             choice.name.startsWith(focusedValue)
         );
-        await interaction.respond(filtered);
+        await interaction.respond(filteredTeam);
     },
     async execute(interaction) {
         await interaction.deferReply();
-        const selectedTeam = interaction.options.getString("team");
-        const team = await createTeamEmbed(selectedTeam);
+        const selectedTeamId = interaction.options.getString("team");
+        const team = await getSpecifiedTeamData(selectedTeamId);
         await interaction.editReply({ embeds: [team] });
     },
 };

@@ -4,9 +4,11 @@ const { ESPN_FFL_BASE_URL } = require("./leagueInfoAPI");
 const axios = require("axios");
 
 const ENDING_WEEK_ID = 18; // end of season
+const TEAM_URL = "mTeam";
+const ROSTER_URL = "mRoster";
 
 const fetchLeagueTeamsInfo = async () => {
-    const apiURL = `${ESPN_FFL_BASE_URL}?view=modular&view=mTeam`;
+    const apiURL = `${ESPN_FFL_BASE_URL}?rosterForTeamId=5&view=${TEAM_URL}&view=${ROSTER_URL}`;
     return axios
         .get(apiURL, {
             headers: {
@@ -21,6 +23,8 @@ const fetchLeagueTeamsInfo = async () => {
             console.error("Error fetching league teams", error);
         });
 };
+
+/* -------- OLD CALLS --------- */
 
 const fetchLeagueTeams = async (selectedWeekId) => {
     try {
