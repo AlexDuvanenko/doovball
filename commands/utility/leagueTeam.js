@@ -1,12 +1,12 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const {
-    fetchLeagueTeams,
+    fetchLeagueTeamsInfo,
     fetchSpecifiedTeamData,
-} = require("../../api/testAPI");
+} = require("../../api/teamsInfoAPI");
 
 const getLeagueTeamsInfo = async () => {
     try {
-        const { teams } = await fetchLeagueTeams();
+        const { teams } = await fetchLeagueTeamsInfo();
         if (!teams) {
             console.error("No data from fetchLeagueTeamsInfo");
             return null;

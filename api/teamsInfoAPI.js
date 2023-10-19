@@ -1,5 +1,6 @@
 const { espnClient } = require("../utilities/espnClient");
 const { espn_seasonId, espn_SWID, espn_s2 } = require("../config.json");
+
 const { ESPN_FFL_BASE_URL } = require("./leagueInfoAPI");
 const axios = require("axios");
 
@@ -8,7 +9,7 @@ const TEAM_URL = "mTeam";
 const ROSTER_URL = "mRoster";
 
 const fetchLeagueTeamsInfo = async () => {
-    const apiURL = `${ESPN_FFL_BASE_URL}?rosterForTeamId=5&view=${TEAM_URL}&view=${ROSTER_URL}`;
+    const apiURL = `${ESPN_FFL_BASE_URL}?view=${TEAM_URL}`;
     return axios
         .get(apiURL, {
             headers: {
@@ -20,7 +21,29 @@ const fetchLeagueTeamsInfo = async () => {
             return response.data;
         })
         .catch((error) => {
-            console.error("Error fetching league teams", error);
+            console.error("Error fetching league endpoint", error);
+        });
+};
+
+const fetchSpecifiedTeamData = async (teamId) => {
+    if (!teamId) {
+        console.error(`Error: No teamId provided!`);
+        return;
+    }
+
+    const apiURL = `${ESPN_FFL_BASE_URL}?rosterForTeamId=${teamId}&view=${TEAM_URL}&view=${ROSTER_URL}`;
+    return axios
+        .get(apiURL, {
+            headers: {
+                Cookie: `SWID=${espn_SWID}; espn_s2=${espn_s2}`,
+            },
+        })
+        .then((response) => {
+            console.info("successfully fetched team data");
+            return response.data;
+        })
+        .catch((error) => {
+            console.error("Error fetching team data", error);
         });
 };
 
@@ -59,6 +82,7 @@ const formatTeamsDataForAutocomplete = async (selectedWeekId) => {
 module.exports = {
     ENDING_WEEK_ID,
     fetchLeagueTeamsInfo,
+    fetchSpecifiedTeamData,
     fetchLeagueTeams,
     formatTeamsDataForAutocomplete,
 };

@@ -1,5 +1,10 @@
 const { REST, Routes } = require("discord.js");
-const { clientId, guildId, token } = require("./config.json");
+const {
+    clientId,
+    privateGuildId,
+    mhmGuildId,
+    token,
+} = require("./config.json");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -38,7 +43,7 @@ const rest = new REST().setToken(token);
         const data = await rest.put(
             // global commands vs specific to a guild
             // Routes.applicationCommands(clientId),
-            Routes.applicationGuildCommands(clientId, guildId),
+            Routes.applicationGuildCommands(clientId, mhmGuildId),
             { body: commands }
         );
 
