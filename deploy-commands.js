@@ -36,8 +36,8 @@ const rest = new REST().setToken(token);
         );
 
         const data = await rest.put(
-            // ** For global commands, only pass the clientId and not the guildId) **
-            // Routes.applicationGuildCommands(clientId),
+            // global commands vs specific to a guild
+            // Routes.applicationCommands(clientId),
             Routes.applicationGuildCommands(clientId, guildId),
             { body: commands }
         );

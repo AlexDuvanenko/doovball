@@ -1,70 +1,76 @@
-const { SlashCommandBuilder } = require("discord.js");
-const { ENDING_WEEK_ID, fetchLeagueTeams } = require("../../api/teamsInfoAPI");
-
-const INIITIAL_TEAM_EMBED = {
-    color: 0x0099ff,
-    description: "",
-    fields: [],
-};
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { fetchLeagueTeamsInfo } = require("../../api/teamsInfoAPI");
 
 // TODO: Lots of code cleanup
 
-const getLeagueTeamsData = async (selectedWeekId) => {
+const getLeagueTeamsInfo = async () => {
     try {
-        const teamsData = await fetchLeagueTeams(selectedWeekId);
-        if (!teamsData) {
-            console.error("No data received!");
-            return;
+        const { teams } = await fetchLeagueTeamsInfo();
+        if (!teams) {
+            console.error("No data from fetchLeagueTeamsInfo");
+            return null;
         }
-
-        return teamsData;
+        console.info("Got team data successfully!");
+        return teams;
     } catch (error) {
-        console.error("Error: ", error);
+        console.error("Error: ", error.message);
     }
 };
 
-const formatTeamsDataForAutocomplete = async (selectedWeekId) => {
-    const data = await getLeagueTeamsData(selectedWeekId);
-    const teams = [];
+const formatTeamInfoAutocomplete = async () => {
+    try {
+        const teamData = await getLeagueTeamsInfo();
+        const teams = [];
 
-    data.forEach((team) => {
-        teams.push({ name: `${team.name}`, value: `${team.id}` });
-    });
+        teamData.forEach((team) => {
+            teams.push({ name: `${team.name}`, value: `${team.id}` });
+        });
 
-    return teams;
+        return teams;
+    } catch (error) {
+        console.error("Error awaiting getLeagueTeamsInfo: ", error.message);
+    }
 };
 
 const createTeamEmbed = async (teamId) => {
-    const teams = await getLeagueTeamsData();
-    console.log("teams", teams);
-    const teamEmbed = INIITIAL_TEAM_EMBED;
+    try {
+        const teams = await getLeagueTeamsInfo();
+        const teamEmbed = new EmbedBuilder();
 
-    const filteredTeam = teams.find((team) => team.id == teamId);
+        const filteredTeam = teams.find((team) => team.id == teamId);
 
-    if (!filteredTeam) {
-        teamEmbed.description = "No data for selected team!";
+        if (!filteredTeam) {
+            teamEmbed.setDescription("No data for selected team!");
+            teamEmbed.data.fields = [];
+            return teamEmbed;
+        }
+
+        const record = filteredTeam.record.overall;
+        console.log(record);
+
+        // theres a chance this could be a tie; will refactor later
+        const streakType = record.streakType === "WIN" ? "W" : "L";
+
+        const descriptionFields = `Position: **${filteredTeam.playoffSeed}**
+            Record: **(${record.wins}-${record.losses}-${record.ties}) ${
+            record.streakLength
+        }${streakType}** \n
+            Points For: **${record.pointsFor.toFixed(2)}**
+            Points Against: **${record.pointsAgainst.toFixed(2)}** \n
+            Current Projected Rank: **${filteredTeam.currentProjectedRank}**
+            Draft Projected Rank: **${filteredTeam.draftDayProjectedRank}** \n
+            Waiver Rank: **${filteredTeam.waiverRank}**
+        `;
+        teamEmbed.setTitle(filteredTeam.name);
+        teamEmbed.setColor(0x0099ff);
+        // TODO: if svg, convert image to something discord can embed
+        teamEmbed.setThumbnail(filteredTeam.logo);
+        teamEmbed.setDescription(descriptionFields);
+
         return teamEmbed;
+    } catch (error) {
+        console.error("failed to await getLeagueTeamsInfo ", error.message);
     }
-
-    const pointsFields = [
-        {
-            name: "Points Scored",
-            value: `**${filteredTeam.regularSeasonPointsFor.toFixed(2)}**`,
-            inline: true,
-        },
-        {
-            name: "Points Against",
-            value: `**${filteredTeam.regularSeasonPointsAgainst.toFixed(2)}**`,
-            inline: true,
-        },
-    ];
-    teamEmbed.title = filteredTeam.name;
-    // TODO: if svg, convert image to something discord can embed
-    teamEmbed.thumbnail = { url: filteredTeam.logoURL };
-    teamEmbed.description = `Record: **(${filteredTeam.wins}-${filteredTeam.losses}-${filteredTeam.ties})**`;
-    pointsFields.forEach((field) => teamEmbed.fields.push(field));
-
-    return teamEmbed;
 };
 
 module.exports = {
@@ -80,7 +86,7 @@ module.exports = {
                 .setAutocomplete(true)
         ),
     async autocomplete(interaction) {
-        const teams = await formatTeamsDataForAutocomplete(ENDING_WEEK_ID);
+        const teams = await formatTeamInfoAutocomplete();
         const focusedValue = interaction.options.getFocused();
         const filtered = teams.filter((choice) =>
             choice.name.startsWith(focusedValue)
